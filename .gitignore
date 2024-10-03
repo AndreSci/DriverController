@@ -1,0 +1,4 @@
+/settings.ini
+/logs/*.log
+*.pyc
+.idea/
