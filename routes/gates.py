@@ -21,8 +21,10 @@ async def open_gate_by_reader(fid: int, request: Request) -> Dict:
     """ Функция принимает fid прохода (считывателя)\n
     Таблица связи: vig_access.treader"""
 
-    logger.info(f"Запрос на открытие через считыватель: IP: {request.client.host}:{request.client.port}",
+    logger.info(f"Запрос на открытие через считыватель: "
+                f"IP: {request.client.host}:{request.client.port} - fid: {fid}",
                 print_it=False)
+
     ret_value = {"RESULT": "ERROR", "DESC": '', "DATA": dict()}
 
     try:
@@ -48,7 +50,7 @@ async def open_gate_by_reader(fid: int, request: Request) -> Dict:
             ret_value['RESULT'] = "WARNING"
             ret_value['DESC'] = f"Не удалось найти считыватель: {reader_fid}"
 
-        logger.warning(ret_value['DESC'])
+        logger.event(ret_value)
 
     except Exception as ex:
         msg = f"Exception in: {ex}"
@@ -63,8 +65,10 @@ async def pulse_by_camera(fid: int, request: Request, relay_num: int = None) -> 
     """Отправить запрос на действие с реле на контроллере по FID камеры.\n
     Таблица связи: vig_access.tdevicecameragroups"""
 
-    logger.info(f"Запрос на открытие через считыватель: IP: {request.client.host}:{request.client.port}",
+    logger.info(f"Запрос на открытие через считыватель: "
+                f"IP: {request.client.host}:{request.client.port} - fid: {fid} relay_num: {relay_num}",
                 print_it=False)
+
     ret_value = {"RESULT": "NOTDEFINE", "DESC": "", "DATA": {}}
 
     # Получаем данные контроллера из буфера
@@ -91,6 +95,8 @@ async def pulse_by_camera(fid: int, request: Request, relay_num: int = None) -> 
     else:
         ret_value['RESULT'] = "WARNING"
         ret_value['DESC'] = "Для данной камеры нет устройства управления проездом"
+
+    logger.event(ret_value)
 
     return JSONResponse(ret_value)
 
@@ -132,7 +138,7 @@ async def pulse_by_caller(caller_name: str, request: Request, relay_num: int = N
         ret_value['RESULT'] = "WARNING"
         ret_value['DESC'] = "Для данной камеры нет устройства управления проездом"
 
-    logger.info(ret_value)
+    logger.event(ret_value)
 
     return JSONResponse(ret_value)
 
@@ -191,7 +197,7 @@ async def manual_control_device(request: Request,
             device = {'FAddress': host, 'FPort': port}
         else:
             ret_value['RESULT'] = 'WARNING'
-            ret_value['DESC'] = "В json не удалось найти данные устройства"
+            ret_value['DESC'] = f"Не удалось получить данные из запроса: fid:{fid} или host:{host} - port:{port}"
             return JSONResponse(ret_value)
 
         ret_value = await DeviceInterface.send_bytes(device, byte_code)

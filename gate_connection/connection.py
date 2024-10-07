@@ -41,7 +41,7 @@ class DeviceConnection:
 
         total_sec = (datetime.now() - start_time).total_seconds()
 
-        if total_sec > 0.4:
+        if total_sec > 1:
             logger.info(f"Время запроса к контроллеру {host}:{port} - {total_sec} сек.")
 
         # print(f"Время на запрос к сокету {host}:{port} - {(datetime.now() - start).total_seconds()}")

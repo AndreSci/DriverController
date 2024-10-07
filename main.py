@@ -40,8 +40,7 @@ if __name__ == '__main__':
 
     setproctitle.setproctitle("Device Driver FastAPI")
     # Меняем имя терминала
-    ctypes.windll.kernel32.SetConsoleTitleW(f"Device Driver (port: {cls_settings.port}) - "
-                                            f"API отвечает за доступ к контроллерам")
+    ctypes.windll.kernel32.SetConsoleTitleW(f"{cls_settings.term_name} (port: {cls_settings.port})")
 
     logger.event(f"Start work API Host: {cls_settings.host} Port: {cls_settings.port}")
     # app.run(host=cls_settings.host, port=cls_settings.port)
