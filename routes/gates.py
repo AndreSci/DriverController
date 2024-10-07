@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Response, Request
 from fastapi.responses import JSONResponse
+from typing import Dict
 
 from database.gate_db import GatesDB
 from misc.logger import Logger
@@ -16,8 +17,10 @@ gates_router = APIRouter(tags=['gates_router_blue'])
 
 
 @gates_router.get('/PulseDeviceByReader')
-async def open_gate_by_reader(fid: int, request: Request):
-    """ Функция принимает fid прохода (считывателя) """
+async def open_gate_by_reader(fid: int, request: Request) -> Dict:
+    """ Функция принимает fid прохода (считывателя)\n
+    Таблица связи: vig_access.treader"""
+
     logger.info(f"Запрос на открытие через считыватель: IP: {request.client.host}:{request.client.port}",
                 print_it=False)
     ret_value = {"RESULT": "ERROR", "DESC": '', "DATA": dict()}
@@ -26,10 +29,12 @@ async def open_gate_by_reader(fid: int, request: Request):
         # Получаем данные считывателя из буфера
         reader_fid = fid
         reader_data = DeviceControlData.get_reader_by_fid(reader_fid)
+
         if reader_data:
             # Получаем данные контроллера и буфера
             device_fid = reader_data.get('FDeviceID')
             device_data = DeviceControlData.get_device_by_fid(device_fid)
+
             if device_data:
                 # Отправляем запрос на открытие проезда
                 device_res = await DeviceInterface.pulse(device_data, int(reader_data.get('FNumberOnDevice')))
@@ -54,7 +59,10 @@ async def open_gate_by_reader(fid: int, request: Request):
 
 
 @gates_router.get('/PulseByCameraID')
-async def pulse_by_camera(fid: int, request: Request, relay_num: int = None):
+async def pulse_by_camera(fid: int, request: Request, relay_num: int = None) -> Dict:
+    """Отправить запрос на действие с реле на контроллере по FID камеры.\n
+    Таблица связи: vig_access.tdevicecameragroups"""
+
     logger.info(f"Запрос на открытие через считыватель: IP: {request.client.host}:{request.client.port}",
                 print_it=False)
     ret_value = {"RESULT": "NOTDEFINE", "DESC": "", "DATA": {}}
@@ -89,7 +97,10 @@ async def pulse_by_camera(fid: int, request: Request, relay_num: int = None):
 
 # Метод создан для Asterisk скрипта
 @gates_router.get('/PulseByCallerID')
-async def pulse_by_caller(caller_name: str, request: Request, relay_num: int = None):
+async def pulse_by_caller(caller_name: str, request: Request, relay_num: int = None) -> Dict:
+    """Отправить запрос на действие с реле на контроллере по имени 'FName' абонента.\n
+    Таблицы связей: vig_sender.tasteriskcaller -> vig_sender.tcamera -> vig_sender.tcameragroups"""
+
     logger.info(f"Запрос на открытие через считыватель: IP: {request.client.host}:{request.client.port}",
                 print_it=False)
     ret_value = {"RESULT": "NOTDEFINE", "DESC": "", "DATA": {}}
@@ -127,7 +138,10 @@ async def pulse_by_caller(caller_name: str, request: Request, relay_num: int = N
 
 
 @gates_router.get('/StateByCameraID')
-async def get_by_camera(fid: int):
+async def get_by_camera(fid: int) -> Dict:
+    """ Запрос возвращает состояние контроллера который связан с камерой.\n
+    Таблица связи камеры и контроллера: vig_access.tdevicecameragroups"""
+
     ret_value = {"RESULT": "NOTDEFINE", "DESC": "", "DATA": {}}
 
     device_data = DeviceControlData.get_device_by_camera(fid)
@@ -154,40 +168,36 @@ async def get_by_camera(fid: int):
 
 # ADDITION FUNCTIONS ----------------------------------------------
 @gates_router.get('/ManualControlDevice')
-async def manual_control_device(request:Request):
-    """ Случай когда нужно обратиться к контроллеру напрямую """
+async def manual_control_device(request: Request,
+                                fid: int = None,
+                                host: str = None, port: str = None,
+                                byte_code: str = '#000000') -> Dict:
+
+    """ Случай когда нужно обратиться к контроллеру напрямую.\n
+    Если не указать byte_code ответом будет статус устройства.\n
+    1. Данные для запроса по FID: fid=4 и byte_code = '#000000'\n
+    2. Данные для запроса по IP: host=192.168.15.177 port=177 byte_code = '#000000'\n
+    '#000000' = команда на получение статуса контроллера. """
+
     logger.info(f"Запрос для ручного управления: IP: {request.client.host}:{request.client.port}", print_it=False)
     ret_value = {"RESULT": "NOTDEFINE", "DESC": "", "DATA": {}}
 
-    request_json = await request.json()
-    logger.info(f"JSON данные: {request_json}", print_it=False)
+    logger.info(f"Request данные: fid:{fid}, host:{host}, port:{port}, byte_code:{byte_code}", print_it=False)
 
     try:
-        if request_json:
-            device_fid = request_json.get('fid')
-            byte_code = request_json.get('byte_code')
-            host = request_json.get('host')
-            port = request_json.get('port')
-
-            if device_fid:
-                device = DeviceControlData.get_device_by_fid(device_fid)
-            elif host and port:
-                device = {'FAddress': host, 'FPort': port}
-            else:
-                ret_value['RESULT'] = 'WARNING'
-                ret_value['DESC'] = "В json не удалось найти данные устройства"
-                return JSONResponse(ret_value)
-
-            if byte_code:
-                ret_value = await DeviceInterface.send_bytes(device, byte_code)
-            else:
-                ret_value = await DeviceInterface.send_bytes(device)
-
-            ret_value['details'] = device
-
+        if fid:
+            device = DeviceControlData.get_device_by_fid(fid)
+        elif host and port:
+            device = {'FAddress': host, 'FPort': port}
         else:
-            ret_value['RESULT'] = "WARNING"
-            ret_value['DESC'] = "В request не удалось найти JSON"
+            ret_value['RESULT'] = 'WARNING'
+            ret_value['DESC'] = "В json не удалось найти данные устройства"
+            return JSONResponse(ret_value)
+
+        ret_value = await DeviceInterface.send_bytes(device, byte_code)
+
+        ret_value['details'] = device
+
     except Exception as ex:
         ret_value['RESULT'] = "EXCEPTION"
         ret_value['DESC'] = f"Не удалось обработать данные запроса: {ex}"
@@ -199,14 +209,18 @@ async def manual_control_device(request:Request):
 # ----------------------------------------------------------------
 
 @gates_router.get('/GetBarrierState')
-async def get_state_barrier(fid: int):
+async def get_state_barrier(fid: int) -> Dict:
     """ Функция принимает FID Barrier,
-    так же есть возможность получить статус всех Barrier одновременно если не указать fid """
+    так же есть возможность получить статус всех Barrier одновременно
+    если указать fid -1 или любой другой меньше нуля."""
 
     ret_value = {"RESULT": "ERROR", "DESC": '', "DATA": dict()}
 
     try:
-        ret_value['DATA'] = {fid: WatcherDataControl.get_data_by_fid(fid)}
+        if fid >= 0:
+            ret_value['DATA'] = {fid: WatcherDataControl.get_data_by_fid(fid)}
+        else:
+            ret_value['DATA'] = WatcherDataControl.get_all()
 
         ret_value['RESULT'] = "SUCCESS"
 
@@ -219,7 +233,7 @@ async def get_state_barrier(fid: int):
 
 
 @gates_router.post('/ActionAddCards')
-async def add_cards(request: Request):
+async def add_cards(request: Request) -> Dict:
     """ Функция принимает fid прохода (считывателя) и дополнительно JSON, где содержится список карт """
 
     ret_value = {"RESULT": "ERROR", "DESC": '', "DATA": list()}

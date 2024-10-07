@@ -7,3 +7,4 @@ SQLAlchemy~=2.0.32
 databases~=0.9.0
 aiomysql
 setproctitle~=1.3.3
+pydantic~=2.9.2
