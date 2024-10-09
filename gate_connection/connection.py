@@ -1,7 +1,8 @@
 import asyncio
+import pprint
 from datetime import datetime
 from misc.logger import Logger
-from gate_connection.models import Packet
+from gate_connection.models import Packet, DeviceData
 
 logger = Logger()
 
@@ -49,17 +50,17 @@ class DeviceConnection:
         return data
 
     @classmethod
-    async def send_packet(cls, device_data: dict, packet: Packet) -> dict:
+    async def send_packet(cls, device_data: DeviceData, packet: Packet) -> dict:
         """ Функция принимает подготовленный пакет данных, и отвечает словарём,
         где содержится имя устройства, результат запроса и сообщение об возникших ошибках """
 
-        res = await cls.__socket_request(device_data.get('FAddress'), device_data.get('FPort'), packet.get())
+        res = await cls.__socket_request(device_data.address, device_data.port, packet.get())
 
         bytes_str = str(res.decode())
 
         data_res = {"bytes": bytes_str,
-                    "device.FName": device_data.get('tdevice.FName'),
-                    "reader.FName": device_data.get('FName')}
+                    "device.FName": device_data.f_name,
+                    "reader.FName": device_data.reader_name}
 
         return data_res
 

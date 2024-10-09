@@ -1,8 +1,11 @@
+import pprint
 import threading
 import time
 from datetime import datetime
 from database.gate_db import GatesDB
 from misc.logger import Logger
+
+from gate_connection.models import DeviceData
 
 logger = Logger()
 
@@ -188,25 +191,36 @@ class UpdaterDataBaseCash:
 
 class DeviceControlData:
     @staticmethod
-    def get_device_by_camera(camera_fid: int) -> dict:
+    def get_device_by_camera(camera_fid: int) -> DeviceData:
+        """ Данные контроллера: поиск по FID камеры. """
         device_fid = CASH_GROUPS.get_by_camera(camera_fid)
-        return CASH_DEVICES.get(device_fid)
+
+        ret_value = DeviceData()
+        ret_value.update_from(CASH_DEVICES.get(device_fid))
+
+        return ret_value
 
     @staticmethod
-    def get_device_by_fid(device_fid: int) -> dict:
-        return CASH_DEVICES.get(device_fid)
+    def get_device_by_fid(device_fid: int) -> DeviceData:
+        """ Данные контроллера: поиск по FID контроллера. """
+        ret_value = DeviceData()
+        ret_value.update_from(CASH_DEVICES.get(device_fid))
+
+        return ret_value
 
     @staticmethod
     def get_reader_by_fid(reader_fid: int) -> dict:
+        """ Данные считывателя: поиск по FID считывателя. """
         return CASH_READER.get(reader_fid)
 
     @staticmethod
     def get_device_list() -> list:
+        """ Полный список всех контроллеров из БД. """
         return CASH_DEVICES.get_list()
 
     @staticmethod
     def get_asterisk_callers_id(caller_name: str) -> int:
-        """ Возвращает FID абонента """
+        """ Возвращает FID абонента астериск. """
         return CASH_ASTERISK.get(caller_name)
 
     @staticmethod

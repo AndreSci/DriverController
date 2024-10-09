@@ -252,6 +252,43 @@ class Packet:
         return ret_str
 
 
+class DeviceData:
+    """ Класс модель для таблицы из БД (vig_access.tdevice) """
+    def __init__(self, fid: int = None, f_name: str = None, desc: str = None,
+                 type_device: int = None, address: str = None, port: int = None, reader_name: str = None):
+        self.fid = fid
+        self.f_name = f_name
+        self.desc = desc
+        self.type_device = type_device
+        self.address = address
+        self.port = port
+        # Additions
+        self.reader_name = reader_name  # Добавляется отдельно если запрос через treader
+
+    def update_from(self, device_data_dict: dict) -> bool:
+        """ Метод для подгрузки данных полученных из БД """
+
+        self.fid = device_data_dict['FID']
+        self.address = device_data_dict['FAddress']
+        self.port = device_data_dict['FPort']
+
+        self.desc = device_data_dict.get('FDescription')
+        self.type_device = device_data_dict.get('FTypeDeviceID')
+        self.f_name = device_data_dict.get('FName')
+
+        return True
+
+    def get_dict(self):
+
+        return {"FID": self.fid,
+                "FName": self.f_name,
+                "FDescription": self.desc,
+                "FTypeDeviceID": self.type_device,
+                "FAddress": self.address,
+                "FPort": self.port,
+                "reader.FName": self.reader_name}
+
+
 if __name__ == "__main__":
     # res = AnswerComplete(b'#00000110')
     #

@@ -1,5 +1,5 @@
 import asyncio
-from gate_connection.models import CommandsCMD, ReserveSection, AnswerState, ReadDataFromHex, Packet
+from gate_connection.models import CommandsCMD, ReserveSection, AnswerState, ReadDataFromHex, Packet, DeviceData
 from gate_connection.connection import DeviceConnection
 
 from misc.logger import Logger
@@ -60,8 +60,8 @@ class DeviceInterface:
         pass
 
     @staticmethod
-    async def pulse(device_data: dict, relay_num: int) -> dict:
-        """ Функция принимает данные устройства из БД """
+    async def pulse(device_data: DeviceData, relay_num: int) -> dict:
+        """ Функция принимает данные устройства из БД и номер реле которым нужно отработать. """
         packet = Packet(CommandsCMD.ACTION, ReserveSection.NOT_DEFINE, [relay_num,])
 
         data_res = await DeviceConnection().send_packet(device_data, packet)
@@ -70,7 +70,7 @@ class DeviceInterface:
         return data_res
 
     @staticmethod
-    async def state(device_data: dict) -> dict:
+    async def state(device_data: DeviceData) -> dict:
         """ Функция принимает данные устройства из БД """
         packet = Packet(CommandsCMD.STATUS, ReserveSection.NOT_DEFINE, [0,])
 
@@ -85,13 +85,13 @@ class DeviceInterface:
 
     # Additional Functions ----------------------------------------------------------
     @staticmethod
-    async def send_bytes(device: dict, byte_code: str = None) -> dict:
+    async def send_bytes(device: DeviceData, byte_code: str = None) -> dict:
         """ Функция запрашиваем данные у удаленного устройства через сокет """
 
         ret_value = {"RESULT": "ERROR", "DESC": '', "DATA": dict()}
 
-        address = device.get('FAddress')
-        port = device.get('FPort')
+        address = device.address
+        port = device.port
 
         try:
             if byte_code:

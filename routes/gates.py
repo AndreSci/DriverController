@@ -1,3 +1,5 @@
+import pprint
+
 from fastapi import APIRouter, Response, Request
 from fastapi.responses import JSONResponse
 from typing import Dict
@@ -5,6 +7,7 @@ from typing import Dict
 from database.gate_db import GatesDB
 from misc.logger import Logger
 
+from gate_connection.models import DeviceData
 from gate_connection.interface import DeviceInterface
 from gate_connection.cash_data import DeviceControlData
 from gate_connection.watcher_data import WatcherDataControl
@@ -37,12 +40,14 @@ async def open_gate_by_reader(fid: int, request: Request) -> Dict:
             device_fid = reader_data.get('FDeviceID')
             device_data = DeviceControlData.get_device_by_fid(device_fid)
 
-            if device_data:
+            if device_data.address:
+                device_data.reader_name = reader_data.get("FName")
                 # Отправляем запрос на открытие проезда
                 device_res = await DeviceInterface.pulse(device_data, int(reader_data.get('FNumberOnDevice')))
 
                 ret_value['RESULT'] = "SUCCESS"
                 ret_value['DESC'] = f"Предоставлен доступ {reader_fid}: {device_res}"
+                ret_value['DATA'] = device_res
             else:
                 ret_value['RESULT'] = "WARNING"
                 ret_value['DESC'] = f"Не удалось найти связь с контроллером: {device_fid}"
@@ -54,7 +59,7 @@ async def open_gate_by_reader(fid: int, request: Request) -> Dict:
 
     except Exception as ex:
         msg = f"Exception in: {ex}"
-        ret_value['DESC'] = msg
+        ret_value['DESC'] = "Не удалось получить данные от контроллера. При запросе возникла ошибка в драйвере."
         logger.exception(msg)
 
     return JSONResponse(ret_value)
@@ -111,15 +116,22 @@ async def pulse_by_caller(caller_name: str, request: Request, relay_num: int = N
                 print_it=False)
     ret_value = {"RESULT": "NOTDEFINE", "DESC": "", "DATA": {}}
 
-    # Получаем данные контроллера из буфера
-    # получаем fid абонента по имени
-    caller_id = DeviceControlData.get_asterisk_callers_id(caller_name)
-    # получаем fid камеры по fid абонента
-    camera_id = DeviceControlData.get_fid_camera_by_caller(caller_id)
-    # получаем данные устройства по fid камеры
-    device_data = DeviceControlData.get_device_by_camera(camera_id)
+    device_data = DeviceData()
+    caller_id = None
+    camera_id = None
 
-    if device_data:
+    # Получаем данные контроллера из буфера
+    try:
+        # получаем fid абонента по имени
+        caller_id = DeviceControlData.get_asterisk_callers_id(caller_name)
+        # получаем fid камеры по fid абонента
+        camera_id = DeviceControlData.get_fid_camera_by_caller(caller_id)
+        # получаем данные устройства по fid камеры
+        device_data = DeviceControlData.get_device_by_camera(camera_id)
+    except Exception as ex:
+        logger.warning(f"Не удалось получить данные для абонента: {caller_name} - {ex}")
+
+    if device_data.address:
         try:
             if relay_num:
                 device_answer = await DeviceInterface.pulse(device_data, relay_num)
@@ -136,7 +148,7 @@ async def pulse_by_caller(caller_name: str, request: Request, relay_num: int = N
 
     else:
         ret_value['RESULT'] = "WARNING"
-        ret_value['DESC'] = "Для данной камеры нет устройства управления проездом"
+        ret_value['DESC'] = "Для данного абонента нет устройства управления проездом"
 
     logger.event(ret_value)
 
@@ -150,13 +162,18 @@ async def get_by_camera(fid: int) -> Dict:
 
     ret_value = {"RESULT": "NOTDEFINE", "DESC": "", "DATA": {}}
 
-    device_data = DeviceControlData.get_device_by_camera(fid)
+    device_data = DeviceData()
 
-    if device_data:
+    try:
+        device_data = DeviceControlData.get_device_by_camera(fid)
+    except Exception as ex:
+        pass
+
+    if device_data.address:
         try:
             # device_answer = await DeviceInterface.state(device_data)
 
-            device_answer = WatcherDataControl.get_data_by_fid(device_data.get('FID'))
+            device_answer = WatcherDataControl.get_data_by_fid(device_data.fid)
 
             ret_value['RESULT'] = "SUCCESS"
             ret_value['DATA'] = device_answer
@@ -185,24 +202,27 @@ async def manual_control_device(request: Request,
     2. Данные для запроса по IP: host=192.168.15.177 port=177 byte_code = '#000000'\n
     '#000000' = команда на получение статуса контроллера. """
 
-    logger.info(f"Запрос для ручного управления: IP: {request.client.host}:{request.client.port}", print_it=False)
+    logger.info(f"Запрос для ручного управления: IP: {request.client.host}:{request.client.port}")
     ret_value = {"RESULT": "NOTDEFINE", "DESC": "", "DATA": {}}
 
     logger.info(f"Request данные: fid:{fid}, host:{host}, port:{port}, byte_code:{byte_code}", print_it=False)
 
     try:
         if fid:
-            device = DeviceControlData.get_device_by_fid(fid)
+            device_data = DeviceControlData.get_device_by_fid(fid)
         elif host and port:
-            device = {'FAddress': host, 'FPort': port}
+            device_dict = {'FAddress': host, 'FPort': port, "FID": -1}
+            device_data = DeviceData()
+            device_data.update_from(device_dict)
+
         else:
             ret_value['RESULT'] = 'WARNING'
             ret_value['DESC'] = f"Не удалось получить данные из запроса: fid:{fid} или host:{host} - port:{port}"
             return JSONResponse(ret_value)
 
-        ret_value = await DeviceInterface.send_bytes(device, byte_code)
+        ret_value = await DeviceInterface.send_bytes(device_data, byte_code)
 
-        ret_value['details'] = device
+        ret_value['details'] = device_data.get_dict()
 
     except Exception as ex:
         ret_value['RESULT'] = "EXCEPTION"
