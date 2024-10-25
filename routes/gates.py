@@ -260,27 +260,31 @@ async def get_state_barrier(fid: int) -> Dict:
 
 @gates_router.post('/ActionAddCards')
 async def add_cards(request: Request) -> Dict:
-    """ Функция принимает fid прохода (считывателя) и дополнительно JSON, где содержится список карт """
+    # В ТЕСТЕ
+    """ Функция принимает JSON, где содержится список новых карт (GUID).
+    Можно вручную указать устройство где требуется определить (FAddress = 127.0.0.1 и FPort = 177).
+    Если не указывать данные, будет получен полный список контроллеров из БД
+    и карты будут добавлены во все контроллеры. """
 
     ret_value = {"RESULT": "ERROR", "DESC": '', "DATA": list()}
 
-    cards_guid = await request.json()
+    json_req = await request.json()
 
     try:
         # Получаем список устройств
-        if cards_guid.get('FAddress'):
+        if json_req.get('FAddress'):
             device_data_list = dict()
             device_data_list['DATA'] = [{'FName': 'Без имени',
                                           'FDescription': 'Ручной ввод адреса контроллера',
-                                          'FAddress': f"{cards_guid.get('FAddress')}",
-                                          'FPort': cards_guid.get('FPort')}
+                                          'FAddress': f"{json_req.get('FAddress')}",
+                                          'FPort': json_req.get('FPort')}
                                         ]
         else:
             device_data_list = GatesDB.get_devices()
 
         logger.info(device_data_list)
 
-        for card_guid in cards_guid.get('cards'):
+        for card_guid in json_req.get('cards'):
             for controller in device_data_list['DATA']:
                 ret_value['DATA'].append(DeviceInterface.send_add_card(controller.get('FAddress'),
                                                                        controller.get('FPort'),
