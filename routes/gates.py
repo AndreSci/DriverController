@@ -217,10 +217,12 @@ async def manual_control_device(request: Request,
             ret_value.warning(desc=f"Не удалось получить данные из запроса: fid:{fid} или host:{host} - port:{port}")
             return JSONResponse(ret_value.respond())
 
-        ret_device = await DeviceInterface.send_bytes(device_data, byte_code)
+        if device_data.address:
 
-        ret_value.success(desc=ret_device.get('DESC'), data=ret_device.get('DATA'))
-        ret_value.add_details(device_data.get_dict())
+            ret_value = await DeviceInterface.send_bytes(device_data, byte_code)
+            ret_value.add_details(device_data.get_dict())
+        else:
+            ret_value.error(desc=f"Не удалось найти контроллер для FID:{fid}")
 
     except Exception as ex:
         ret_value.exception(desc=f"Не удалось обработать данные запроса: {ex}")

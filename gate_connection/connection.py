@@ -35,7 +35,8 @@ class DeviceConnection:
                 data = await reader.read(1024)
 
             except Exception as ex:
-                print("TEST")
+                # pass
+                logger.warning(f"Exception in: {ex} ({host}:{port})")
             finally:
                 writer.close()
                 await writer.wait_closed()
@@ -68,11 +69,11 @@ class DeviceConnection:
     async def force_request(cls, host: str, port: int, byte_code: bytes) -> dict:
         """ Функция отправляет байт-код на устройство по сокет """
 
-        ret_value = {}
-
         res = await cls.__socket_request(host, port, byte_code)
 
         if res:
             ret_value = {'bytes': str(res.decode())}
+        else:
+            ret_value = {'bytes': ''}
 
         return ret_value

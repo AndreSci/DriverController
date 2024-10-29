@@ -3,6 +3,7 @@ from gate_connection.models import CommandsCMD, ReserveSection, AnswerState, Rea
 from gate_connection.connection import DeviceConnection
 
 from misc.logger import Logger
+from misc.ret_value import RetValue
 
 logger = Logger()
 
@@ -85,10 +86,10 @@ class DeviceInterface:
 
     # Additional Functions ----------------------------------------------------------
     @staticmethod
-    async def send_bytes(device: DeviceData, byte_code: str = None) -> dict:
+    async def send_bytes(device: DeviceData, byte_code: str = None) -> RetValue:
         """ Функция запрашиваем данные у удаленного устройства через сокет """
 
-        ret_value = {"RESULT": "ERROR", "DESC": '', "DATA": dict()}
+        ret_value = RetValue()
 
         address = device.address
         port = device.port
@@ -101,21 +102,25 @@ class DeviceInterface:
 
             res = await DeviceConnection().force_request(address, port, byte_code)
 
-            ret_value['DATA'] = res
-            ret_value['RESULT'] = 'SUCCESS'
+            ret_value.success(data=res)
+
             repeat_warning(address, port, True)
 
         except ConnectionError as cex:
-            ret_value['DESC'] = f"Ошибка связи с контролером: {cex} ({address}:{port})"
-            logger.warning(ret_value['DESC'])
+            cex_msg = f"Ошибка связи с контролером: {cex} ({address}:{port})"
+            logger.warning(cex_msg)
+            ret_value.warning(desc=cex_msg)
         except TimeoutError as tex:
-            ret_value['DESC'] = f"Превышено время ожидания контролером: {tex} ({address}:{port})"
+            tex_msg = f"Превышено время ожидания контролером: {tex} ({address}:{port})"
+            ret_value.warning(desc=tex_msg)
 
             if repeat_warning(address, port, False):
-                logger.warning(ret_value['DESC'])
+                logger.warning(tex_msg)
+
         except Exception as ex:
-            ret_value['DESC'] = f"Общая ошибка: {ex} ({address}:{port})"
-            logger.exception(ret_value['DESC'])
+            ex_msg = f"Общая ошибка: {ex} ({address}:{port})"
+            ret_value.exception(desc=ex_msg)
+            logger.exception(ex_msg)
 
         return ret_value
 
@@ -130,6 +135,7 @@ class DeviceInterface:
             ret_value['DATA'] = await DeviceConnection().force_request(address, port, byte_code)
 
             ret_value['RESULT'] = "SUCCESS"
+
             if not repeat_warning(address, port):
                 logger.event(f"Установленна связь с устройством: {address}:{port}")
             repeat_warning(address, port, True)

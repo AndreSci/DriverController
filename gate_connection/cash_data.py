@@ -51,6 +51,7 @@ class CashDevice:
         self.data[fid] = device_data
 
     def add_all(self, devices_data: list):
+        """ Метод для обновления данных контроллеров из БД, используется часто для Watcher. """
         self.data_list = devices_data
         data = dict()
 
@@ -58,6 +59,17 @@ class CashDevice:
             device_fid = it.get('FID')
             data[device_fid] = it
 
+            # Раздел вывода сообщений в терминал
+            if device_fid in self.data:
+                address = self.data[device_fid].get('FAddress')
+                port = self.data[device_fid].get('FPort')
+
+                if it.get('FAddress') != address or it.get('FPort') != port:
+                    logger.info(f"Получено обновленное устройство из БД: {it}")
+            else:
+                logger.info(f"Получено новое устройство из БД: {it}")
+
+        # Полная перезапись чтоб не искать удалённые устройства из БД. (не влияет на активные сессии соединения)
         self.data = data
 
     def get(self, device_fid: int) -> dict:
