@@ -1,0 +1,25 @@
+[GET] http://127.0.0.1:8027/PulseByCameraID?fid=30
+
+    Принимает FID камеры.
+    Отправляет запрос к контроллеру связанного в БД с камерой на отработку реле.
+    Время запроса ~700мс.
+
+    Ответ:
+    Json (Успешный ответ).
+
+    {
+    "RESULT": "SUCCESS",
+    "DESC": "",
+    "TYPE_DATA": "dict",
+    "DATA": {
+        "bytes": "#010000",
+        "device.FName": "Для тестов 3",
+        "reader.FName": null,
+        "decode_data": {
+            "CMD": 1,
+            "EHS": 0,
+            "SIZE": 0
+        },
+        "req_time_speed": 0.036225
+    }
+}

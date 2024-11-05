@@ -1,12 +1,23 @@
-[GET] http://127.0.0.1:177/PulseDeviceByReader?fid=31
+[GET] http://127.0.0.1:8027/PulseDeviceByReader?fid=2
 
     Принимает FID считывателя.
     Отправляет команду пульс на устройство связанное со считывателем.
+    Имеет задержку ~700мс.
 
     Ответ:
-    Json
+    Json (Успешный ответ).
     {
-        'RESULT': "SUCCESS",
-        'DESC': '',
-        'DATA': dict()
+    "RESULT": "SUCCESS",
+    "DESC": "Предоставлен доступ 2: {'bytes': '#010000', 'device.FName': 'Тестовый контроллер 1', 'reader.FName': 'Тестовый выход', 'decode_data': {'CMD': 1, 'EHS': 0, 'SIZE': 0}}",
+    "TYPE_DATA": "dict",
+    "DATA": {
+        "bytes": "#010000",
+        "device.FName": "Тестовый контроллер 1",
+        "reader.FName": "Тестовый выход",
+        "decode_data": {
+            "CMD": 1,
+            "EHS": 0,
+            "SIZE": 0
+        }
     }
+}

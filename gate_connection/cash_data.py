@@ -9,7 +9,7 @@ from gate_connection.models import DeviceData
 
 logger = Logger()
 
-UPDATE_TIME_DATA_CASH = 120
+UPDATE_TIME_DATA_CASH = 60
 
 
 class CashGroupCameraDevice:

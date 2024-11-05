@@ -1,0 +1,40 @@
+[GET] http://127.0.0.1:8027/GetBarrierState?fid=1
+
+    Принимает FID контроллера.
+    Даёт последний полученный ответ от контроллера из буфера.
+    Время запроса ~10мс.
+
+    Ответ:
+    Json (Успешный ответ).
+
+    {
+    "RESULT": "SUCCESS",
+    "DESC": "",
+    "DATA": {
+        "1": {
+            "FID": 1,
+            "FName": "Тестовый контроллер 1",
+            "FTypeDeviceID": 3,
+            "FAddress": "192.168.48.177",
+            "FDescription": "Создан для тестов",
+            "FPort": 177,
+            "FOnlineStatus": 1,
+            "bytes": "#00000102",
+            "Packet": {},
+            "decode_topic": {
+                "CMD": 0,
+                "EHS": 0,
+                "SIZE": 1
+            },
+            "decode_data": [
+                {
+                    "gate_position": 8,
+                    "object_in": 0,
+                    "power": 0,
+                    "reserve_a": 0,
+                    "reserve_b": 0
+                }
+            ]
+        }
+    }
+}
