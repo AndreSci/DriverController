@@ -1,3 +1,4 @@
+![](./main_image.jpg)
 The driver is responsible for: 
 1. providing access to controllers.
 2. monitoring the status.
